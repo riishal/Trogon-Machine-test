@@ -183,7 +183,7 @@ class _HomepageState extends State<Homepage> {
               ),
             )),
         floatingActionButton: FloatingActionButton(
-          shape: CircleBorder(),
+          shape: const CircleBorder(),
           backgroundColor: AppColors.primaryColor,
           onPressed: () {},
           child: const Icon(
