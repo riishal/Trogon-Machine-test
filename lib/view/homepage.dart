@@ -12,6 +12,18 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  late ProviderData getData;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize ProviderData after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getData = Provider.of<ProviderData>(context, listen: false);
+      getData.fetchCourses();
+    });
+  }
+
   int _bottomNavIndex = 0;
   final iconList = <IconData>[
     Icons.home,
@@ -19,8 +31,8 @@ class _HomepageState extends State<Homepage> {
     Icons.notifications,
     Icons.person,
   ];
-  List list = ["Exam", 'Practice', 'Materials'];
-  List image = [
+  List<String> list = ["Exam", 'Practice', 'Materials'];
+  List<String> image = [
     "assets/exam.png",
     "assets/practice.png",
     "assets/materials.png",
@@ -30,25 +42,33 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     var hour = DateTime.now().hour;
-    return Consumer<ProviderData>(builder: (context, getdata, child) {
-      var user = getdata.coursModel.data.userdata;
-      return Scaffold(
-        appBar: PreferredSize(
-            preferredSize: Size(double.infinity, size.height * 0.23),
-            child: Container(
+
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size(double.infinity, size.height * 0.23),
+        child: Consumer<ProviderData>(
+          builder: (context, getdata, child) {
+            // Check if coursModel is initialized
+            if (getdata.coursModel?.data?.userdata == null) {
+              return AppBar(
+                title: const Text('Loading...'),
+              );
+            }
+
+            var user = getdata.coursModel!.data.userdata;
+
+            return Container(
               decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    // stops: [
-                    //   0.2,
-                    //   0.8,
-                    // ],
-                    colors: [AppColors.primaryColor, AppColors.secondaryColor],
-                  ),
-                  borderRadius: BorderRadius.only(
-                      bottomRight: Radius.circular(20),
-                      bottomLeft: Radius.circular(20))),
+                gradient: LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  colors: [AppColors.primaryColor, AppColors.secondaryColor],
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                ),
+              ),
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(vertical: 25, horizontal: 15),
@@ -181,144 +201,137 @@ class _HomepageState extends State<Homepage> {
                   ],
                 ),
               ),
-            )),
-        floatingActionButton: FloatingActionButton(
-          shape: const CircleBorder(),
-          backgroundColor: AppColors.primaryColor,
-          onPressed: () {},
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
-          ),
-        ),
-        body: FutureBuilder(
-          future: getdata.fetchCourses(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryColor),
-              );
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(snapshot.error.toString()),
-              );
-            }
-
-            if (snapshot.hasData) {
-              return Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 18,
-                ),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: size.height * 0.13,
-                        width: double.infinity,
-                        child: Center(
-                          child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemBuilder: (context, index) => Container(
-                                    height: 150,
-                                    width: 100,
-                                    decoration: BoxDecoration(
-                                        color: AppColors.colorsList[index],
-                                        borderRadius:
-                                            BorderRadius.circular(13)),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Image.asset(image[index]),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                        Text(
-                                          list[index],
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(
-                                    width: 40,
-                                  ),
-                              itemCount: list.length),
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Courses',
-                            style: TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'See All',
-                            style: TextStyle(
-                                color: Color.fromRGBO(81, 46, 126, 1),
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      Expanded(
-                          child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisSpacing: 10, crossAxisCount: 3),
-                        itemCount: getdata.coursModel.data.subjects.length,
-                        itemBuilder: (context, index) {
-                          var course = getdata.coursModel.data.subjects;
-                          return Column(
-                            children: [
-                              CircleAvatar(
-                                radius: 40,
-                                backgroundImage:
-                                    NetworkImage(course[index].thumbnail),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                course[index].title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ))
-                    ]),
-              );
-            }
-            return Container();
+            );
           },
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: AnimatedBottomNavigationBar(
-          icons: iconList,
-          activeIndex: _bottomNavIndex,
-          gapLocation: GapLocation.center,
-          notchSmoothness: NotchSmoothness.verySmoothEdge,
-          leftCornerRadius: 32,
-          rightCornerRadius: 32,
-          onTap: (index) => setState(() => _bottomNavIndex = index),
+      ),
+      floatingActionButton: FloatingActionButton(
+        shape: const CircleBorder(),
+        backgroundColor: AppColors.primaryColor,
+        onPressed: () {},
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
         ),
-      );
-    });
+      ),
+      body: Consumer<ProviderData>(
+        builder: (context, getdata, child) {
+          if (getdata.coursModel == null) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryColor),
+            );
+          }
+          return Container(
+            margin: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 18,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: size.height * 0.13,
+                  width: double.infinity,
+                  child: Center(
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) => Container(
+                        height: 150,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          color: AppColors.colorsList[index],
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Image.asset(image[index]),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            Text(
+                              list[index],
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            )
+                          ],
+                        ),
+                      ),
+                      separatorBuilder: (context, index) => const SizedBox(
+                        width: 40,
+                      ),
+                      itemCount: list.length,
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Courses',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'See All',
+                      style: TextStyle(
+                          color: Color.fromRGBO(81, 46, 126, 1),
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisSpacing: 10,
+                      crossAxisCount: 3,
+                    ),
+                    itemCount: getdata.coursModel!.data.subjects.length,
+                    itemBuilder: (context, index) {
+                      var course = getdata.coursModel!.data.subjects[index];
+                      return Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundImage: NetworkImage(course.thumbnail),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            course.title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                )
+              ],
+            ),
+          );
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: AnimatedBottomNavigationBar(
+        icons: iconList,
+        activeIndex: _bottomNavIndex,
+        gapLocation: GapLocation.center,
+        notchSmoothness: NotchSmoothness.verySmoothEdge,
+        leftCornerRadius: 32,
+        rightCornerRadius: 32,
+        onTap: (index) => setState(() => _bottomNavIndex = index),
+      ),
+    );
   }
 }
